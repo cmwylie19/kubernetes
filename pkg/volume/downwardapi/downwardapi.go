@@ -17,10 +17,13 @@ limitations under the License.
 package downwardapi
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -170,6 +173,8 @@ func (b *downwardAPIVolumeMounter) SetUp(mounterArgs volume.MounterArgs) error {
 }
 
 func (b *downwardAPIVolumeMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) error {
+	klog.Info("INITED")
+
 	klog.V(3).Infof("Setting up a downwardAPI volume %v for pod %v/%v at %v", b.volName, b.pod.Namespace, b.pod.Name, dir)
 	// Wrap EmptyDir. Here we rely on the idempotency of the wrapped plugin to avoid repeatedly mounting
 	wrapped, err := b.plugin.host.NewWrapperMounter(b.volName, wrappedVolumeSpec(), b.pod, *b.opts)
@@ -253,7 +258,23 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 		}
 		if fileInfo.FieldRef != nil {
 			// TODO: unify with Kubelet.podFieldSelectorRuntimeValue
-			if values, err := fieldpath.ExtractFieldPathAsString(pod, fileInfo.FieldRef.FieldPath); err != nil {
+			// GET NODE FROM KUBE-APISERVER
+			var obj interface{}
+			nodeName := host.GetHostName()
+			kc := host.GetKubeClient()
+			// we could probably replace the pod metadata with the node metadata
+			node, err := kc.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+			if err != nil {
+				klog.Errorf("Unable to get node %s: %s", nodeName, err.Error())
+				errlist = append(errlist, err)
+			}
+			if strings.Contains(fileInfo.FieldRef.FieldPath, "node") {
+				obj = node
+			} else {
+				obj = pod
+			}
+
+			if values, err := fieldpath.ExtractFieldPathAsString(obj, fileInfo.FieldRef.FieldPath); err != nil {
 				klog.Errorf("Unable to extract field %s: %s", fileInfo.FieldRef.FieldPath, err.Error())
 				errlist = append(errlist, err)
 			} else {

@@ -1040,6 +1040,8 @@ func validateFlockerVolumeSource(flocker *core.FlockerVolumeSource, fldPath *fie
 
 var validVolumeDownwardAPIFieldPathExpressions = sets.New(
 	"metadata.name",
+	"node.metadata.labels",
+	"node.metadata.annotations",
 	"metadata.namespace",
 	"metadata.labels",
 	"metadata.annotations",
@@ -2600,6 +2602,8 @@ func ValidateEnv(vars []core.EnvVar, fldPath *field.Path, opts PodValidationOpti
 
 var validEnvDownwardAPIFieldPathExpressions = sets.New(
 	"metadata.name",
+	"node.metadata.labels",
+	"node.metadata.annotations",
 	"metadata.namespace",
 	"metadata.uid",
 	"spec.nodeName",
