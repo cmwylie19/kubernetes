@@ -245,7 +245,8 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 	if defaultMode == nil {
 		return nil, fmt.Errorf("no defaultMode used, not even the default value for it")
 	}
-
+	var node *v1.Node
+	var err error
 	errlist := []error{}
 	data := make(map[string]volumeutil.FileProjection)
 	for _, fileInfo := range items {
@@ -258,17 +259,16 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 		}
 		if fileInfo.FieldRef != nil {
 			// TODO: unify with Kubelet.podFieldSelectorRuntimeValue
-			// GET NODE FROM KUBE-APISERVER
 			var obj interface{}
-			nodeName := host.GetHostName()
-			kc := host.GetKubeClient()
-			// we could probably replace the pod metadata with the node metadata
-			node, err := kc.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
-			if err != nil {
-				klog.Errorf("Unable to get node %s: %s", nodeName, err.Error())
-				errlist = append(errlist, err)
-			}
+
 			if strings.Contains(fileInfo.FieldRef.FieldPath, "node") {
+				nodeName := host.GetHostName()
+				kc := host.GetKubeClient()
+				node, err = kc.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+				if err != nil {
+					klog.Errorf("Unable to get node %s: %s", nodeName, err.Error())
+					errlist = append(errlist, err)
+				}
 				obj = node
 			} else {
 				obj = pod
