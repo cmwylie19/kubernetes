@@ -55,3 +55,30 @@ spec:
               fieldPath: metadata.annotations
 EOF
 ```
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: hithere
+  name: hithere
+spec:
+  volumes:
+    - name: proof
+      downwardAPI:
+        items:
+          - path: "nodelabels"
+            fieldRef:
+              fieldPath: node.metadata.labels
+  containers:
+  - image: nginx
+    name: hithere
+    resources: {}
+    volumeMounts:
+      - name: proof
+        mountPath: /etc/proof
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
