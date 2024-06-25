@@ -944,7 +944,10 @@ func (kl *Kubelet) podFieldSelectorRuntimeValue(fs *v1.ObjectFieldSelector, pod 
 	}
 
 	path, _, ok := fieldpath.SplitMaybeSubscriptedPath(internalFieldPath)
-	if path == "node.metadata.labels" && ok {
+	if !ok {
+		return "", fmt.Errorf("invalid field path %q", internalFieldPath)
+	}
+	if path == "node.metadata.labels" {
 		node, err := kl.GetNode()
 		if err != nil {
 			return "", err

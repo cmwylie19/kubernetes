@@ -50,23 +50,6 @@ func FormatMap(m map[string]string) (fmtStr string) {
 	return string(dst)
 }
 
-func HandleNodeLabelAccess(fieldPath string, nodeLabels map[string]string) (string, error) {
-	// Extract the label name from the field path
-	labelName := strings.TrimPrefix(strings.TrimSuffix(fieldPath, "]"), "node.labels.")
-
-	// Validate the label name
-	if errs := validation.IsQualifiedName(strings.ToLower(labelName)); len(errs) != 0 {
-		return "", fmt.Errorf("invalid label name in %s: %s", fieldPath, strings.Join(errs, ";"))
-	}
-
-	// Return the label value if it exists
-	value, ok := nodeLabels[labelName]
-	if !ok {
-		return "", fmt.Errorf("label %q not found in node labels", labelName)
-	}
-	return value, nil
-}
-
 // ExtractFieldPathAsString extracts the field from the given object
 // and returns it as a string.  The object must be a pointer to an
 // API type.

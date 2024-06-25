@@ -2601,7 +2601,7 @@ func ValidateEnv(vars []core.EnvVar, fldPath *field.Path, opts PodValidationOpti
 
 var validEnvDownwardAPIFieldPathExpressions = sets.New(
 	"metadata.name",
-	"node.metadata.labels",
+	// "node.metadata.labels",
 	"metadata.namespace",
 	"metadata.uid",
 	"spec.nodeName",

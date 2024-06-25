@@ -28,35 +28,35 @@ spec:
       image: ubuntu
       command: ["sh", "-c", "sleep 9999"]
       env:
-      # - name: NODE_LABELS
-      #   valueFrom:
-      #     fieldRef:
-      #       fieldPath: node.metadata.labels 
-      # - name: NODE_LABEL_REGION
-      #   valueFrom:
-      #     fieldRef:
-      #       fieldPath: node.metadata.labels['region']  
-      - name: POD_LABELS
+      - name: NODE_LABELS
         valueFrom:
           fieldRef:
-            fieldPath: metadata.labels
-      # volumeMounts:
-      #   - name: nodelabels
-      #     mountPath: /etc/nodelabels
-      #   - name: podlabels
-      #     mountPath: /etc/podlabels
-  # volumes:
-  #   - name: nodelabels
-  #     downwardAPI:
-  #       items:
-  #         - path: "nodelabels"
-  #           fieldRef:
-  #             fieldPath: node.metadata.labels
-  #   - name: podlabels
-  #     downwardAPI:
-  #       items:
-  #         - path: "podlabels"
-  #           fieldRef:
-  #             fieldPath: metadata.labels
+            fieldPath: node.metadata.labels 
+      - name: NODE_LABEL_REGION
+        valueFrom:
+          fieldRef:
+            fieldPath: node.metadata.labels['region']  
+      # - name: POD_LABELS
+      #   valueFrom:
+      #     fieldRef:
+      #       fieldPath: metadata.labels
+      volumeMounts:
+        - name: nodelabels
+          mountPath: /etc/nodelabels
+        - name: podlabels
+          mountPath: /etc/podlabels
+  volumes:
+    - name: nodelabels
+      downwardAPI:
+        items:
+          - path: "nodelabels"
+            fieldRef:
+              fieldPath: node.metadata.labels
+    - name: podlabels
+      downwardAPI:
+        items:
+          - path: "podlabels"
+            fieldRef:
+              fieldPath: metadata.labels
 EOF
 ```
