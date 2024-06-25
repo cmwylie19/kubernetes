@@ -28,10 +28,10 @@ spec:
       image: ubuntu
       command: ["sh", "-c", "sleep 9999"]
       env:
-      - name: NODE_LABELS
-        valueFrom:
-          fieldRef:
-            fieldPath: node.metadata.labels 
+      # - name: NODE_LABELS
+      #   valueFrom:
+      #     fieldRef:
+      #       fieldPath: node.metadata.labels 
       - name: NODE_LABEL_REGION
         valueFrom:
           fieldRef:
@@ -59,4 +59,9 @@ spec:
             fieldRef:
               fieldPath: metadata.labels
 EOF
+sleep 10;
+# quick check
+kubectl exec -it ex2 -- sh -c "cat /etc/nodelabels/nodelabels"
+kubectl exec -it ex2 -- sh -c "cat /etc/podlabels/podlabels"
+kubectl exec -it ex2 -- sh -c "env | grep NODE_LABEL_REGION"
 ```
