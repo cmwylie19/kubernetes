@@ -942,6 +942,16 @@ func (kl *Kubelet) podFieldSelectorRuntimeValue(fs *v1.ObjectFieldSelector, pod 
 	case "status.podIPs":
 		return strings.Join(podIPs, ","), nil
 	}
+
+	path, _, ok := fieldpath.SplitMaybeSubscriptedPath(internalFieldPath)
+	if path == "node.metadata.labels" && ok {
+		node, err := kl.GetNode()
+		if err != nil {
+			return "", err
+		}
+		return fieldpath.ExtractFieldPathAsString(node, internalFieldPath)
+	}
+
 	return fieldpath.ExtractFieldPathAsString(pod, internalFieldPath)
 }
 

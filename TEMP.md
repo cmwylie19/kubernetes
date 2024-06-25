@@ -11,74 +11,52 @@ kind delete clusters --all;
 docker system prune -a -f; 
 kind build node-image .;
 kind create cluster --image kindest/node:latest;
+k label no kind-control-plane region=us-east-1
 sleep 10;
+
 k apply -f -<<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: kubernetes-downwardapi-volume-example
+  name: ex2
   labels:
     zone: us-est-coast
     cluster: test-cluster1
-    rack: rack-22
-  annotations:
-    build: two
-    builder: john-doe
 spec:
   containers:
     - name: client-container
-      image: registry.k8s.io/busybox
-      command: ["sh", "-c"]
-      args:
-      - while true; do
-          if [[ -e /etc/podinfo/labels ]]; then
-            echo -en '\n\n'; cat /etc/podinfo/labels; fi;
-          if [[ -e /etc/podinfo/annotations ]]; then
-            echo -en '\n\n'; cat /etc/podinfo/annotations; fi;
-          sleep 5;
-        done;
-      volumeMounts:
-        - name: podinfo
-          mountPath: /etc/podinfo
-  volumes:
-    - name: podinfo
-      downwardAPI:
-        items:
-          - path: "nodelabels"
-            fieldRef:
-              fieldPath: node.metadata.labels
-          - path: "labels"
-            fieldRef:
-              fieldPath: metadata.labels
-          - path: "annotations"
-            fieldRef:
-              fieldPath: metadata.annotations
+      image: ubuntu
+      command: ["sh", "-c", "sleep 9999"]
+      env:
+      # - name: NODE_LABELS
+      #   valueFrom:
+      #     fieldRef:
+      #       fieldPath: node.metadata.labels 
+      # - name: NODE_LABEL_REGION
+      #   valueFrom:
+      #     fieldRef:
+      #       fieldPath: node.metadata.labels['region']  
+      - name: POD_LABELS
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels
+      # volumeMounts:
+      #   - name: nodelabels
+      #     mountPath: /etc/nodelabels
+      #   - name: podlabels
+      #     mountPath: /etc/podlabels
+  # volumes:
+  #   - name: nodelabels
+  #     downwardAPI:
+  #       items:
+  #         - path: "nodelabels"
+  #           fieldRef:
+  #             fieldPath: node.metadata.labels
+  #   - name: podlabels
+  #     downwardAPI:
+  #       items:
+  #         - path: "podlabels"
+  #           fieldRef:
+  #             fieldPath: metadata.labels
 EOF
 ```
-
-
-apiVersion: v1
-kind: Pod
-metadata:
-  creationTimestamp: null
-  labels:
-    run: hithere
-  name: hithere
-spec:
-  volumes:
-    - name: proof
-      downwardAPI:
-        items:
-          - path: "nodelabels"
-            fieldRef:
-              fieldPath: node.metadata.labels
-  containers:
-  - image: nginx
-    name: hithere
-    resources: {}
-    volumeMounts:
-      - name: proof
-        mountPath: /etc/proof
-  dnsPolicy: ClusterFirst
-  restartPolicy: Always
-status: {}

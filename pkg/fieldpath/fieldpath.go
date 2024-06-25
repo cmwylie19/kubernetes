@@ -50,6 +50,23 @@ func FormatMap(m map[string]string) (fmtStr string) {
 	return string(dst)
 }
 
+func HandleNodeLabelAccess(fieldPath string, nodeLabels map[string]string) (string, error) {
+	// Extract the label name from the field path
+	labelName := strings.TrimPrefix(strings.TrimSuffix(fieldPath, "]"), "node.labels.")
+
+	// Validate the label name
+	if errs := validation.IsQualifiedName(strings.ToLower(labelName)); len(errs) != 0 {
+		return "", fmt.Errorf("invalid label name in %s: %s", fieldPath, strings.Join(errs, ";"))
+	}
+
+	// Return the label value if it exists
+	value, ok := nodeLabels[labelName]
+	if !ok {
+		return "", fmt.Errorf("label %q not found in node labels", labelName)
+	}
+	return value, nil
+}
+
 // ExtractFieldPathAsString extracts the field from the given object
 // and returns it as a string.  The object must be a pointer to an
 // API type.
@@ -61,22 +78,12 @@ func ExtractFieldPathAsString(obj interface{}, fieldPath string) (string, error)
 
 	if path, subscript, ok := SplitMaybeSubscriptedPath(fieldPath); ok {
 		switch path {
-		case "node.metadata.labels":
-			if errs := validation.IsQualifiedName(strings.ToLower(subscript)); len(errs) != 0 {
-				return "", fmt.Errorf("invalid key subscript in %s: %s", fieldPath, strings.Join(errs, ";"))
-			}
-			return accessor.GetLabels()[subscript], nil
-		case "node.metadata.annotations":
-			if errs := validation.IsQualifiedName(strings.ToLower(subscript)); len(errs) != 0 {
-				return "", fmt.Errorf("invalid key subscript in %s: %s", fieldPath, strings.Join(errs, ";"))
-			}
-			return accessor.GetAnnotations()[subscript], nil
 		case "metadata.annotations":
 			if errs := validation.IsQualifiedName(strings.ToLower(subscript)); len(errs) != 0 {
 				return "", fmt.Errorf("invalid key subscript in %s: %s", fieldPath, strings.Join(errs, ";"))
 			}
 			return accessor.GetAnnotations()[subscript], nil
-		case "metadata.labels":
+		case "metadata.labels", "node.metadata.labels":
 			if errs := validation.IsQualifiedName(subscript); len(errs) != 0 {
 				return "", fmt.Errorf("invalid key subscript in %s: %s", fieldPath, strings.Join(errs, ";"))
 			}
@@ -87,8 +94,6 @@ func ExtractFieldPathAsString(obj interface{}, fieldPath string) (string, error)
 	}
 
 	switch fieldPath {
-	case "node.metadata.annotations":
-		return FormatMap(accessor.GetAnnotations()), nil
 	case "node.metadata.labels":
 		return FormatMap(accessor.GetLabels()), nil
 	case "metadata.annotations":

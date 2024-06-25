@@ -259,7 +259,7 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 			// TODO: unify with Kubelet.podFieldSelectorRuntimeValue
 			var obj interface{}
 
-			if strings.Contains(fileInfo.FieldRef.FieldPath, "node") {
+			if strings.HasPrefix(fileInfo.FieldRef.FieldPath, "node.") {
 				nodeName := host.GetHostName()
 				kc := host.GetKubeClient()
 				node, err = kc.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})

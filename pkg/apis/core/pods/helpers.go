@@ -65,7 +65,7 @@ func ConvertDownwardAPIFieldLabel(version, label, value string) (string, string,
 
 	if path, _, ok := fieldpath.SplitMaybeSubscriptedPath(label); ok {
 		switch path {
-		case "metadata.annotations", "metadata.labels", "node.metadata.labels", "node.metadata.annotations":
+		case "metadata.annotations", "metadata.labels", "node.metadata.labels":
 			return label, value, nil
 		default:
 			return "", "", fmt.Errorf("field label does not support subscript: %s", label)
@@ -76,7 +76,6 @@ func ConvertDownwardAPIFieldLabel(version, label, value string) (string, string,
 	case "metadata.annotations",
 		"metadata.labels",
 		"node.metadata.labels",
-		"node.metadata.annotations",
 		"metadata.name",
 		"metadata.namespace",
 		"metadata.uid",
