@@ -52,5 +52,4 @@ Running Test:
 ```bash
 make WHAT=test/e2e/e2e.test
 ./_output/bin/ginkgo --focus="should provide node label region as an env var and mount a volume from node labels" ./_output/bin/e2e.test -- --kubeconfig=$HOME/.kube/config --provider=skeleton
-
 ```
