@@ -17,13 +17,10 @@ limitations under the License.
 package downwardapi
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -243,8 +240,6 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 	if defaultMode == nil {
 		return nil, fmt.Errorf("no defaultMode used, not even the default value for it")
 	}
-	var node *v1.Node
-	var err error
 	errlist := []error{}
 	data := make(map[string]volumeutil.FileProjection)
 	for _, fileInfo := range items {
@@ -257,26 +252,48 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 		}
 		if fileInfo.FieldRef != nil {
 			// TODO: unify with Kubelet.podFieldSelectorRuntimeValue
-			var obj interface{}
 
-			if strings.HasPrefix(fileInfo.FieldRef.FieldPath, "node.") {
-				nodeName := host.GetHostName()
-				kc := host.GetKubeClient()
-				node, err = kc.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+			path, subscript, subscripted := fieldpath.SplitMaybeSubscriptedPath(fileInfo.FieldRef.FieldPath)
+			klog.Info("path: ", path)
+			klog.Info("subscript: ", subscript)
+			klog.Info("subscripted: ", subscripted)
+			if path == "node.metadata.labels" {
+				labels, err := host.GetNodeLabels()
+				klog.Info("LABELS: ", labels)
 				if err != nil {
-					klog.Errorf("Unable to get node %s: %s", nodeName, err.Error())
+					klog.Errorf("Unable to get node field %s %s", fileInfo.FieldRef.FieldPath, err.Error())
 					errlist = append(errlist, err)
+				} else {
+					if !subscripted {
+						klog.Info("LABELS: ", labels)
+						fileProjection.Data = []byte(fieldpath.FormatMap(labels))
+					} else {
+						fileProjection.Data = []byte(labels[subscript])
+					}
 				}
-				obj = node
 			} else {
-				obj = pod
-			}
+				// var obj interface{}
 
-			if values, err := fieldpath.ExtractFieldPathAsString(obj, fileInfo.FieldRef.FieldPath); err != nil {
-				klog.Errorf("Unable to extract field %s: %s", fileInfo.FieldRef.FieldPath, err.Error())
-				errlist = append(errlist, err)
-			} else {
-				fileProjection.Data = []byte(values)
+				// if strings.HasPrefix(fileInfo.FieldRef.FieldPath, "node.") {
+				// 	nodeName := host.GetHostName()
+				// 	kc := host.GetKubeClient()
+				// 	node, err = kc.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+				// 	if err != nil {
+				// 		klog.Errorf("Unable to get node %s: %s", nodeName, err.Error())
+				// 		errlist = append(errlist, err)
+				// 	}
+				// 	obj = node
+				// } else {
+				// 	obj = pod
+				// }
+
+				if values, err := fieldpath.ExtractFieldPathAsString(pod, fileInfo.FieldRef.FieldPath); err != nil {
+					klog.Errorf("Unable to extract field %s: %s", fileInfo.FieldRef.FieldPath, err.Error())
+					errlist = append(errlist, err)
+				} else {
+					fileProjection.Data = []byte(values)
+				}
+
 			}
 		} else if fileInfo.ResourceFieldRef != nil {
 			containerName := fileInfo.ResourceFieldRef.ContainerName
