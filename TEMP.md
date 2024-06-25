@@ -13,38 +13,25 @@ kind build node-image .;
 kind create cluster --image kindest/node:latest;
 k label no kind-control-plane region=us-east-1
 sleep 10;
-
+k delete po --all --force;
 k apply -f -<<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: ex2
-  labels:
-    zone: us-est-coast
-    cluster: test-cluster1
+  name: ex3
 spec:
   containers:
     - name: client-container
       image: ubuntu
-      command: ["sh", "-c", "sleep 9999"]
+      command: ["sh", "-c", "env | grep NODE_LABEL_REGION && cat /etc/nodelabels/nodelabels && sleep 9999"]
       env:
-      # - name: NODE_LABELS
-      #   valueFrom:
-      #     fieldRef:
-      #       fieldPath: node.metadata.labels 
       - name: NODE_LABEL_REGION
         valueFrom:
           fieldRef:
             fieldPath: node.metadata.labels['region']  
-      # - name: POD_LABELS
-      #   valueFrom:
-      #     fieldRef:
-      #       fieldPath: metadata.labels
       volumeMounts:
         - name: nodelabels
           mountPath: /etc/nodelabels
-        - name: podlabels
-          mountPath: /etc/podlabels
   volumes:
     - name: nodelabels
       downwardAPI:
@@ -52,16 +39,23 @@ spec:
           - path: "nodelabels"
             fieldRef:
               fieldPath: node.metadata.labels
-    - name: podlabels
-      downwardAPI:
-        items:
-          - path: "podlabels"
-            fieldRef:
-              fieldPath: metadata.labels
+---
 EOF
+sleep 3;
+kubectl logs ex3
 sleep 10;
 # quick check
 kubectl exec -it ex2 -- sh -c "cat /etc/nodelabels/nodelabels"
 kubectl exec -it ex2 -- sh -c "cat /etc/podlabels/podlabels"
 kubectl exec -it ex2 -- sh -c "env | grep NODE_LABEL_REGION"
+```
+
+
+
+Running Test:
+
+```bash
+make WHAT=test/e2e/e2e.test
+./_output/bin/ginkgo --focus="should provide node label region as an env var and mount a volume from node labels" ./_output/bin/e2e.test -- --kubeconfig=$HOME/.kube/config --provider=skeleton
+
 ```

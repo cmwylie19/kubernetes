@@ -23,20 +23,120 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	watchtools "k8s.io/client-go/tools/watch"
+	"k8s.io/kubernetes/pkg/client/conditions"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epodoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	"k8s.io/kubernetes/test/e2e/nodefeature"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 )
 
 var _ = SIGDescribe("Downward API", func() {
 	f := framework.NewDefaultFramework("downward-api")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+
+	ginkgo.It("should provide node label region as an env var and mount a volume from node labels", func(ctx context.Context) {
+		podClient := e2epod.NewPodClient(f)
+		node, err := e2enode.GetRandomReadySchedulableNode(ctx, f.ClientSet)
+		framework.ExpectNoError(err)
+
+		// Labeling the node
+		node.Labels = map[string]string{"region": "us-east-1", "zone": "us-east-1a"}
+		_, err = f.ClientSet.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+		framework.ExpectNoError(err)
+
+		podName := "downward-api-1"
+		env := []v1.EnvVar{
+			{
+				Name: "NODE_REGION",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "node.metadata.labels['region']", // Note: Kubernetes does not currently support this subscript syntax for node labels
+					},
+				},
+			},
+		}
+		volumeName := "nodelabels"
+		volumes := []v1.Volume{
+			{
+				Name: volumeName,
+				VolumeSource: v1.VolumeSource{
+					DownwardAPI: &v1.DownwardAPIVolumeSource{
+						Items: []v1.DownwardAPIVolumeFile{
+							{
+								Path: "region",
+								FieldRef: &v1.ObjectFieldSelector{
+									FieldPath: "node.metadata.labels", // Note: Same subscript issue
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		testPod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: podName,
+			},
+
+			Spec: v1.PodSpec{
+				NodeName: node.Name,
+				Containers: []v1.Container{
+					{
+						Name:    "dapi-container",
+						Image:   imageutils.GetE2EImage(imageutils.BusyBox),
+						Command: []string{"sh", "-c", "env && cat /etc/nodelabels/region && sleep 9999"},
+						Env:     env,
+						VolumeMounts: []v1.VolumeMount{
+							{
+								Name:      volumeName,
+								MountPath: "/etc/nodelabels",
+							},
+						},
+					},
+				},
+				Volumes:       volumes,
+				HostNetwork:   true,
+				RestartPolicy: v1.RestartPolicyNever,
+			},
+		}
+		pod := podClient.Create(ctx, testPod)
+
+		fieldSelector := fields.OneTermEqualSelector("metadata.name", pod.Name).String()
+		w := &cache.ListWatch{
+			WatchFunc: func(options metav1.ListOptions) (i watch.Interface, e error) {
+				options.FieldSelector = fieldSelector
+				return podClient.Watch(ctx, options)
+			},
+		}
+		var events []watch.Event
+		ctx, cancel := watchtools.ContextWithOptionalTimeout(ctx, framework.PodStartTimeout)
+		defer cancel()
+
+		event, err := watchtools.Until(ctx, pod.ResourceVersion, w, recordEvents(events, conditions.PodRunning))
+		framework.ExpectNoError(err)
+
+		checkInvariants(events, containerInitInvariant)
+		endPod := event.Object.(*v1.Pod)
+
+		log, err := podClient.GetLogs(endPod.Name, &v1.PodLogOptions{Container: "dapi-container"}).DoRaw(ctx)
+		framework.ExpectNoError(err)
+		result := string(log)
+		gomega.Expect(result).To(gomega.ContainSubstring("region=\"us-east-1\""))
+		gomega.Expect(result).To(gomega.ContainSubstring("NODE_REGION=us-east-1"))
+	})
 
 	/*
 	   Release: v1.9
