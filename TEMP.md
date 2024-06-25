@@ -43,11 +43,6 @@ spec:
 EOF
 sleep 3;
 kubectl logs ex3
-sleep 10;
-# quick check
-kubectl exec -it ex2 -- sh -c "cat /etc/nodelabels/nodelabels"
-kubectl exec -it ex2 -- sh -c "cat /etc/podlabels/podlabels"
-kubectl exec -it ex2 -- sh -c "env | grep NODE_LABEL_REGION"
 ```
 
 
