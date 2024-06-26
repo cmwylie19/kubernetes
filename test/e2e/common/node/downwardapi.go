@@ -52,7 +52,7 @@ var _ = SIGDescribe("Downward API", func() {
 		framework.ExpectNoError(err)
 
 		// Labeling the node
-		node.Labels = map[string]string{"region": "us-east-1", "zone": "us-east-1a"}
+		node.Labels = map[string]string{"topology.k8s.io/region": "us-east-1", "topology.k8s.io/zone": "us-east-1a"}
 		_, err = f.ClientSet.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		framework.ExpectNoError(err)
 
@@ -63,7 +63,7 @@ var _ = SIGDescribe("Downward API", func() {
 				ValueFrom: &v1.EnvVarSource{
 					FieldRef: &v1.ObjectFieldSelector{
 						APIVersion: "v1",
-						FieldPath:  "node.metadata.labels['region']", // Note: Kubernetes does not currently support this subscript syntax for node labels
+						FieldPath:  "node.metadata.labels['topology.k8s.io/region']", // Note: Kubernetes does not currently support this subscript syntax for node labels
 					},
 				},
 			},
@@ -134,7 +134,7 @@ var _ = SIGDescribe("Downward API", func() {
 		log, err := podClient.GetLogs(endPod.Name, &v1.PodLogOptions{Container: "dapi-container"}).DoRaw(ctx)
 		framework.ExpectNoError(err)
 		result := string(log)
-		gomega.Expect(result).To(gomega.ContainSubstring("region=\"us-east-1\""))
+		gomega.Expect(result).To(gomega.ContainSubstring("topology.k8s.io/region=\"us-east-1\""))
 		gomega.Expect(result).To(gomega.ContainSubstring("NODE_REGION=us-east-1"))
 	})
 

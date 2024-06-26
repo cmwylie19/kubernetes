@@ -23,6 +23,64 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
+func TestSanitizeNodeLabels(t *testing.T) {
+
+	nodeLabels := map[string]string{
+		"topology.k8s.io/region":                "us-east-1",
+		"topology.k8s.io/zone":                  "us-east-1a",
+		"topology.k8s.io/hostname":              "node-1",
+		"beta.kubernetes.io/arch":               "amd64",
+		"beta.kubernetes.io/os":                 "linux",
+		"kubernetes.io/arch":                    "amd64",
+		"kubernetes.io/hostname":                "node-1",
+		"kubernetes.io/os":                      "linux",
+		"node-role.kubernetes.io/control-plane": "",
+	}
+
+	expectedValues := map[string]string{
+		"topology.k8s.io/region":   "us-east-1",
+		"topology.k8s.io/zone":     "us-east-1a",
+		"topology.k8s.io/hostname": "node-1",
+	}
+
+	sanitizedNodeLabels := SanitizeNodeLabels(nodeLabels)
+
+	for i, val := range sanitizedNodeLabels {
+		if val != expectedValues[i] {
+			t.Errorf("expected %v, got %v", expectedValues[i], val)
+		}
+	}
+	if len(sanitizedNodeLabels) != len(expectedValues) {
+		t.Errorf("expected %v, got %v", len(expectedValues), len(sanitizedNodeLabels))
+	}
+
+}
+
+func TestIsLegalSubscriptAndQualifiedName(t *testing.T) {
+
+	goodValues := []string{
+		"topology.k8s.io/region",
+		"topology.k8s.io/zone",
+		"topology.k8s.io/hostname",
+	}
+	for _, val := range goodValues {
+		if errors := IsLegalSubscriptAndQualifiedName(val); len(errors) != 0 {
+			t.Errorf("expected true for '%s': %v", val, errors)
+		}
+	}
+	badValues := []string{
+		"topology.k8s.io",
+		"topology.k89s.io/",
+		"region",
+		"instance",
+	}
+	for _, val := range badValues {
+		if errors := IsLegalSubscriptAndQualifiedName(val); len(errors) == 0 {
+			t.Errorf("expected false for '%s'", val)
+		}
+	}
+}
+
 func TestIsDNS1123Label(t *testing.T) {
 	goodValues := []string{
 		"a", "ab", "abc", "a1", "a-1", "a--1--2--b",

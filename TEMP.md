@@ -11,14 +11,14 @@ kind delete clusters --all;
 docker system prune -a -f; 
 kind build node-image .;
 kind create cluster --image kindest/node:latest;
-k label no kind-control-plane region=us-east-1
+k label no kind-control-plane topology.k8s.io/region=us-east-1
 sleep 10;
 k delete po --all --force;
 k apply -f -<<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: ex3
+  name: ex
 spec:
   containers:
     - name: client-container
@@ -28,7 +28,7 @@ spec:
       - name: NODE_LABEL_REGION
         valueFrom:
           fieldRef:
-            fieldPath: node.metadata.labels['region']  
+            fieldPath: node.metadata.labels['topology.k8s.io/region']  
       volumeMounts:
         - name: nodelabels
           mountPath: /etc/nodelabels
@@ -41,8 +41,10 @@ spec:
               fieldPath: node.metadata.labels
 ---
 EOF
-sleep 3;
-kubectl logs ex3
+sleep 8;
+k get ev 
+kind export logs   
+kubectl logs ex
 ```
 
 
@@ -50,6 +52,8 @@ kubectl logs ex3
 Running Test:
 
 ```bash
+make ginkgo
+make WHAT=test/e2e/e2e.test
 make WHAT=test/e2e/e2e.test
 ./_output/bin/ginkgo --focus="should provide node label region as an env var and mount a volume from node labels" ./_output/bin/e2e.test -- --kubeconfig=$HOME/.kube/config --provider=skeleton
 ```

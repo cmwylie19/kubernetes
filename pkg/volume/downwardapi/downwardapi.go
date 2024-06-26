@@ -23,6 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/api/v1/resource"
 	"k8s.io/kubernetes/pkg/fieldpath"
@@ -259,11 +260,13 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 				if err != nil {
 					klog.Errorf("Unable to get node field %s %s", fileInfo.FieldRef.FieldPath, err.Error())
 					errlist = append(errlist, err)
+
 				} else {
+					sanitized := validation.SanitizeNodeLabels(labels)
 					if !subscripted {
-						fileProjection.Data = []byte(fieldpath.FormatMap(labels))
+						fileProjection.Data = []byte(fieldpath.FormatMap(sanitized))
 					} else {
-						fileProjection.Data = []byte(labels[subscript])
+						fileProjection.Data = []byte(sanitized[subscript])
 					}
 				}
 			} else {

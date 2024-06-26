@@ -35,6 +35,38 @@ const qualifiedNameMaxLength int = 63
 
 var qualifiedNameRegexp = regexp.MustCompile("^" + qualifiedNameFmt + "$")
 
+// SanitizeNodeLabels removes illegal node labels before passing to pod.
+func SanitizeNodeLabels(originalLabels map[string]string) map[string]string {
+	if len(originalLabels) == 0 {
+		return nil
+	}
+	filteredLabels := make(map[string]string)
+	for key, value := range originalLabels {
+		if errs := IsLegalSubscriptAndQualifiedName(key); len(errs) == 0 {
+			filteredLabels[key] = value
+		}
+	}
+
+	return filteredLabels
+}
+
+// IsLegalSubscriptAndQualifiedName tests whether the value passed is a
+// "legal subscript" and a valid Kubernetes API "qualified name".
+func IsLegalSubscriptAndQualifiedName(value string) []string {
+	var errs []string
+	prefix := "topology.k8s.io/"
+
+	if !strings.HasPrefix(value, prefix) || len(value) <= len(prefix) {
+		errs = append(errs, "downward API field must be a topology.k8s.io/* field")
+	}
+
+	if len(errs) > 0 {
+		return errs
+	} else {
+		return IsQualifiedName(value)
+	}
+}
+
 // IsQualifiedName tests whether the value passed is what Kubernetes calls a
 // "qualified name".  This is a format used in various places throughout the
 // system.  If the value is not valid, a list of error strings is returned.
@@ -67,6 +99,7 @@ func IsQualifiedName(value string) []string {
 	if !qualifiedNameRegexp.MatchString(name) {
 		errs = append(errs, "name part "+RegexError(qualifiedNameErrMsg, qualifiedNameFmt, "MyName", "my.name", "123-abc"))
 	}
+
 	return errs
 }
 

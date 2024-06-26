@@ -66,9 +66,14 @@ func ExtractFieldPathAsString(obj interface{}, fieldPath string) (string, error)
 				return "", fmt.Errorf("invalid key subscript in %s: %s", fieldPath, strings.Join(errs, ";"))
 			}
 			return accessor.GetAnnotations()[subscript], nil
-		case "metadata.labels", "node.metadata.labels":
+		case "metadata.labels":
 			if errs := validation.IsQualifiedName(subscript); len(errs) != 0 {
 				return "", fmt.Errorf("invalid key subscript in %s: %s", fieldPath, strings.Join(errs, ";"))
+			}
+			return accessor.GetLabels()[subscript], nil
+		case "node.metadata.labels":
+			if errs := validation.IsLegalSubscriptAndQualifiedName(subscript); len(errs) != 0 {
+				return "", fmt.Errorf("invalid key subscript in %s: %s, downward API field must be a topology.k8s.io/* field", fieldPath, strings.Join(errs, ";"))
 			}
 			return accessor.GetLabels()[subscript], nil
 		default:
@@ -77,8 +82,6 @@ func ExtractFieldPathAsString(obj interface{}, fieldPath string) (string, error)
 	}
 
 	switch fieldPath {
-	case "node.metadata.labels":
-		return FormatMap(accessor.GetLabels()), nil
 	case "metadata.annotations":
 		return FormatMap(accessor.GetAnnotations()), nil
 	case "metadata.labels":
