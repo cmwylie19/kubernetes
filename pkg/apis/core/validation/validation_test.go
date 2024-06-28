@@ -6420,6 +6420,18 @@ func TestRelaxedValidateEnv(t *testing.T) {
 		}},
 		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "metadata.labels": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
 	}, {
+		name: "node.metadata.labels without subscript",
+		envs: []core.EnvVar{{
+			Name: "labels",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "node.metadata.labels",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "node.metadata.labels": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
+	}, {
 		name: "metadata.annotations without subscript",
 		envs: []core.EnvVar{{
 			Name: "abc",
