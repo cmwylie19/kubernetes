@@ -4940,6 +4940,193 @@ func TestValidateVolumes(t *testing.T) {
 				detail: "fieldRef and resourceFieldRef can not be specified simultaneously",
 			}},
 		}, {
+			name: "downapi valid item mode",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Mode: utilpointer.Int32(0644),
+							Path: "path",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+		}, {
+			name: "downapi invalid positive item mode",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Mode: utilpointer.Int32(01000),
+							Path: "path",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype: field.ErrorTypeInvalid,
+				field: "downwardAPI.mode",
+			}},
+		}, {
+			name: "downapi invalid negative item mode",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Mode: utilpointer.Int32(-1),
+							Path: "path",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype: field.ErrorTypeInvalid,
+				field: "downwardAPI.mode",
+			}},
+		}, {
+			name: "downapi empty metatada path",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Path: "",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype: field.ErrorTypeRequired,
+				field: "downwardAPI.path",
+			}},
+		}, {
+			name: "downapi absolute path",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Path: "/absolutepath",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype: field.ErrorTypeInvalid,
+				field: "downwardAPI.path",
+			}},
+		}, {
+			name: "downapi dot dot path",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Path: "../../passwd",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype:  field.ErrorTypeInvalid,
+				field:  "downwardAPI.path",
+				detail: `must not contain '..'`,
+			}},
+		}, {
+			name: "downapi dot dot file name",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Path: "..badFileName",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype:  field.ErrorTypeInvalid,
+				field:  "downwardAPI.path",
+				detail: `must not start with '..'`,
+			}},
+		}, {
+			name: "downapi dot dot first level dirent",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Path: "..badDirName/goodFileName",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype:  field.ErrorTypeInvalid,
+				field:  "downwardAPI.path",
+				detail: `must not start with '..'`,
+			}},
+		}, {
+			name: "downapi fieldRef and ResourceFieldRef together",
+			vol: core.Volume{
+				Name: "downapi",
+				VolumeSource: core.VolumeSource{
+					DownwardAPI: &core.DownwardAPIVolumeSource{
+						Items: []core.DownwardAPIVolumeFile{{
+							Path: "test",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+							ResourceFieldRef: &core.ResourceFieldSelector{
+								ContainerName: "test-container",
+								Resource:      "requests.memory",
+							},
+						}},
+					},
+				},
+			},
+			errs: []verr{{
+				etype:  field.ErrorTypeInvalid,
+				field:  "downwardAPI",
+				detail: "fieldRef and resourceFieldRef can not be specified simultaneously",
+			}},
+		}, {
 			name: "downapi invalid positive defaultMode",
 			vol: core.Volume{
 				Name: "downapi",
