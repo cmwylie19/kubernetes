@@ -4667,31 +4667,56 @@ func TestValidateVolumes(t *testing.T) {
 								APIVersion: "v1",
 								FieldPath:  "metadata.labels",
 							},
-						}, {
-							Path: "cpu_limit",
-							ResourceFieldRef: &core.ResourceFieldSelector{
-								ContainerName: "test-container",
-								Resource:      "limits.cpu",
-							},
-						}, {
-							Path: "cpu_request",
-							ResourceFieldRef: &core.ResourceFieldSelector{
-								ContainerName: "test-container",
-								Resource:      "requests.cpu",
-							},
-						}, {
-							Path: "memory_limit",
-							ResourceFieldRef: &core.ResourceFieldSelector{
-								ContainerName: "test-container",
-								Resource:      "limits.memory",
-							},
-						}, {
-							Path: "memory_request",
-							ResourceFieldRef: &core.ResourceFieldSelector{
-								ContainerName: "test-container",
-								Resource:      "requests.memory",
-							},
-						}},
+						},
+							{
+								Path: "path/with/subdirs",
+								FieldRef: &core.ObjectFieldSelector{
+									APIVersion: "v1",
+									FieldPath:  "node.metadata.labels",
+								},
+							}, {
+								Path: "path/./withdot",
+								FieldRef: &core.ObjectFieldSelector{
+									APIVersion: "v1",
+									FieldPath:  "node.metadata.labels",
+								},
+							}, {
+								Path: "path/with/embedded..dotdot",
+								FieldRef: &core.ObjectFieldSelector{
+									APIVersion: "v1",
+									FieldPath:  "node.metadata.labels",
+								},
+							}, {
+								Path: "path/with/leading/..dotdot",
+								FieldRef: &core.ObjectFieldSelector{
+									APIVersion: "v1",
+									FieldPath:  "node.metadata.labels",
+								},
+							}, {
+								Path: "cpu_limit",
+								ResourceFieldRef: &core.ResourceFieldSelector{
+									ContainerName: "test-container",
+									Resource:      "limits.cpu",
+								},
+							}, {
+								Path: "cpu_request",
+								ResourceFieldRef: &core.ResourceFieldSelector{
+									ContainerName: "test-container",
+									Resource:      "requests.cpu",
+								},
+							}, {
+								Path: "memory_limit",
+								ResourceFieldRef: &core.ResourceFieldSelector{
+									ContainerName: "test-container",
+									Resource:      "limits.memory",
+								},
+							}, {
+								Path: "memory_request",
+								ResourceFieldRef: &core.ResourceFieldSelector{
+									ContainerName: "test-container",
+									Resource:      "requests.memory",
+								},
+							}},
 					},
 				},
 			},
