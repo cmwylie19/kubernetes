@@ -6535,6 +6535,14 @@ func TestValidateEnv(t *testing.T) {
 			ValueFrom: &core.EnvVarSource{
 				FieldRef: &core.ObjectFieldSelector{
 					APIVersion: "v1",
+					FieldPath:  "node.metadata.labels['key']",
+				},
+			},
+		}, {
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
 					FieldPath:  "metadata.name",
 				},
 			},
@@ -6854,6 +6862,18 @@ func TestValidateEnv(t *testing.T) {
 		}},
 		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "metadata.labels": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
 	}, {
+		name: "node.metadata.labels without subscript",
+		envs: []core.EnvVar{{
+			Name: "labels",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.labels",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "node.metadata.labels": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
+	}, {
 		name: "metadata.annotations without subscript",
 		envs: []core.EnvVar{{
 			Name: "abc",
@@ -6884,6 +6904,18 @@ func TestValidateEnv(t *testing.T) {
 			ValueFrom: &core.EnvVarSource{
 				FieldRef: &core.ObjectFieldSelector{
 					FieldPath:  "metadata.labels['Www.k8s.io/test']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
+	}, {
+		name: "node.metadata.labels with invalid key",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "node.metadata.labels['Www.k8s.io/test']",
 					APIVersion: "v1",
 				},
 			},
@@ -19001,6 +19033,7 @@ func TestValidateReplicationController(t *testing.T) {
 				field != "spec.template.labels" &&
 				field != "metadata.annotations" &&
 				field != "metadata.labels" &&
+				field != "node.metadata.labels" &&
 				field != "status.replicas" {
 				t.Errorf("%s: missing prefix for: %v", k, errs[i])
 			}
