@@ -173,7 +173,7 @@ const (
 	// kep: http://kep.k8s.io/4009
 	// alpha: v1.28
 	// beta: v1.29
-	// GA: v1.30
+	// GA: v1.31
 	//
 	// Add support for CDI Device IDs in the Device Plugin API.
 	DevicePluginCDIDevices featuregate.Feature = "DevicePluginCDIDevices"
@@ -526,6 +526,7 @@ const (
 	// kep: http://kep.k8s.io/3018
 	// alpha: v1.26
 	// beta: v1.27
+	// GA: v1.31
 	//
 	// Enables PDBUnhealthyPodEvictionPolicy for PodDisruptionBudgets
 	PDBUnhealthyPodEvictionPolicy featuregate.Feature = "PDBUnhealthyPodEvictionPolicy"
@@ -932,6 +933,7 @@ const (
 	// owner: @AkihiroSuda
 	// kep: https://kep.k8s.io/3857
 	// alpha: v1.30
+	// beta: v1.31
 	//
 	// Allows recursive read-only mounts.
 	RecursiveReadOnlyMounts featuregate.Feature = "RecursiveReadOnlyMounts"
@@ -946,6 +948,7 @@ const (
 
 func init() {
 	runtime.Must(utilfeature.DefaultMutableFeatureGate.Add(defaultKubernetesFeatureGates))
+	runtime.Must(utilfeature.DefaultMutableFeatureGate.AddVersioned(defaultVersionedKubernetesFeatureGates))
 
 	// Register all client-go features with kube's feature gate instance and make all client-go
 	// feature checks use kube's instance. The effect is that for kube binaries, client-go
@@ -1094,7 +1097,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	NodeSwap: {Default: true, PreRelease: featuregate.Beta},
 
-	PDBUnhealthyPodEvictionPolicy: {Default: true, PreRelease: featuregate.Beta},
+	PDBUnhealthyPodEvictionPolicy: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.33
 
 	PersistentVolumeLastPhaseTransitionTime: {Default: true, PreRelease: featuregate.Beta},
 
@@ -1278,5 +1281,5 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	StorageNamespaceIndex: {Default: true, PreRelease: featuregate.Beta},
 
-	RecursiveReadOnlyMounts: {Default: false, PreRelease: featuregate.Alpha},
+	RecursiveReadOnlyMounts: {Default: true, PreRelease: featuregate.Beta},
 }
