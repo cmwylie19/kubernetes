@@ -6145,6 +6145,14 @@ func TestRelaxedValidateEnv(t *testing.T) {
 				},
 			},
 		}, {
+			Name: "!\"#$%&'()",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "node.metadata.labels['key']",
+				},
+			},
+		}, {
 			Name: "* +,-./0123456789",
 			ValueFrom: &core.EnvVarSource{
 				FieldRef: &core.ObjectFieldSelector{
