@@ -4596,6 +4596,24 @@ func TestValidateVolumes(t *testing.T) {
 								FieldPath:  "metadata.labels['test.example.com/key']",
 							},
 						}, {
+							Path: "node-labels",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels",
+							},
+						}, {
+							Path: "labels with subscript",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels['key']",
+							},
+						}, {
+							Path: "node labels with complex subscript",
+							FieldRef: &core.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "node.metadata.labels['test.example.com/key']",
+							},
+						}, {
 							Path: "annotations",
 							FieldRef: &core.ObjectFieldSelector{
 								APIVersion: "v1",
@@ -6205,44 +6223,31 @@ func TestRelaxedValidateEnv(t *testing.T) {
 			},
 		}},
 		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "invalid~key"`,
+	}, {
+		name: "metadata.labels with invalid key",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.labels['Www.k8s.io/test']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
+	}, {
+		name: "unsupported fieldPath",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "status.phase",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `valueFrom.fieldRef.fieldPath: Unsupported value: "status.phase": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
 	},
-		{
-			name: "node.metadata.labels with invalid key",
-			envs: []core.EnvVar{{
-				Name: "abc",
-				ValueFrom: &core.EnvVarSource{
-					FieldRef: &core.ObjectFieldSelector{
-						FieldPath:  "node.metadata.labels['Www.k8s.io/test']",
-						APIVersion: "v1",
-					},
-				},
-			}},
-			expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
-		}, {
-			name: "metadata.labels with invalid key",
-			envs: []core.EnvVar{{
-				Name: "abc",
-				ValueFrom: &core.EnvVarSource{
-					FieldRef: &core.ObjectFieldSelector{
-						FieldPath:  "metadata.labels['Www.k8s.io/test']",
-						APIVersion: "v1",
-					},
-				},
-			}},
-			expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
-		}, {
-			name: "unsupported fieldPath",
-			envs: []core.EnvVar{{
-				Name: "abc",
-				ValueFrom: &core.EnvVarSource{
-					FieldRef: &core.ObjectFieldSelector{
-						FieldPath:  "status.phase",
-						APIVersion: "v1",
-					},
-				},
-			}},
-			expectedError: `valueFrom.fieldRef.fieldPath: Unsupported value: "status.phase": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
-		},
 	}
 	for _, tc := range errorCases {
 		if errs := ValidateEnv(tc.envs, field.NewPath("field"), PodValidationOptions{AllowRelaxedEnvironmentVariableValidation: true}); len(errs) == 0 {
@@ -6605,67 +6610,54 @@ func TestValidateEnv(t *testing.T) {
 		}},
 		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "metadata.labels": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
 	}, {
-		name: "node.metadata.labels without subscript",
+		name: "metadata.annotations without subscript",
 		envs: []core.EnvVar{{
-			Name: "labels",
+			Name: "abc",
 			ValueFrom: &core.EnvVarSource{
 				FieldRef: &core.ObjectFieldSelector{
-					FieldPath:  "node.metadata.labels",
+					FieldPath:  "metadata.annotations",
 					APIVersion: "v1",
 				},
 			},
 		}},
-		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "node.metadata.labels": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "metadata.annotations": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
+	}, {
+		name: "metadata.annotations with invalid key",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.annotations['invalid~key']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "invalid~key"`,
+	}, {
+		name: "metadata.labels with invalid key",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.labels['Www.k8s.io/test']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
+	}, {
+		name: "unsupported fieldPath",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "status.phase",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `valueFrom.fieldRef.fieldPath: Unsupported value: "status.phase": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
 	},
-		{
-			name: "metadata.annotations without subscript",
-			envs: []core.EnvVar{{
-				Name: "abc",
-				ValueFrom: &core.EnvVarSource{
-					FieldRef: &core.ObjectFieldSelector{
-						FieldPath:  "metadata.annotations",
-						APIVersion: "v1",
-					},
-				},
-			}},
-			expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "metadata.annotations": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
-		}, {
-			name: "metadata.annotations with invalid key",
-			envs: []core.EnvVar{{
-				Name: "abc",
-				ValueFrom: &core.EnvVarSource{
-					FieldRef: &core.ObjectFieldSelector{
-						FieldPath:  "metadata.annotations['invalid~key']",
-						APIVersion: "v1",
-					},
-				},
-			}},
-			expectedError: `field[0].valueFrom.fieldRef: Invalid value: "invalid~key"`,
-		}, {
-			name: "metadata.labels with invalid key",
-			envs: []core.EnvVar{{
-				Name: "abc",
-				ValueFrom: &core.EnvVarSource{
-					FieldRef: &core.ObjectFieldSelector{
-						FieldPath:  "metadata.labels['Www.k8s.io/test']",
-						APIVersion: "v1",
-					},
-				},
-			}},
-			expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
-		}, {
-			name: "unsupported fieldPath",
-			envs: []core.EnvVar{{
-				Name: "abc",
-				ValueFrom: &core.EnvVarSource{
-					FieldRef: &core.ObjectFieldSelector{
-						FieldPath:  "status.phase",
-						APIVersion: "v1",
-					},
-				},
-			}},
-			expectedError: `valueFrom.fieldRef.fieldPath: Unsupported value: "status.phase": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
-		},
 	}
 	for _, tc := range errorCases {
 		if errs := ValidateEnv(tc.envs, field.NewPath("field"), PodValidationOptions{}); len(errs) == 0 {
