@@ -6468,6 +6468,18 @@ func TestRelaxedValidateEnv(t *testing.T) {
 		}},
 		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
 	}, {
+		name: "node.metadata.labels with invalid key",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "node.metadata.labels['Www.k8s.io/test']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
+	}, {
 		name: "unsupported fieldPath",
 		envs: []core.EnvVar{{
 			Name: "abc",
